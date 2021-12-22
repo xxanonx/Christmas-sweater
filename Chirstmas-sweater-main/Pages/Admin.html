@@ -1,0 +1,65 @@
+<html>
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>LED Xmas Sweater</title>
+    <script>
+  var Socket;
+  var prev_passjs;
+  var new_ssidjs;
+  var new_passjs;
+  var expecting_pf = false;
+  
+  function init() {
+    Socket = new WebSocket('ws://' + window.location.hostname + ':81/');
+    Socket.onmessage = function(event){
+      var socketData = event.data;
+      if ((expecting_pf == true) and (socketData.indexOf("pass check") != -1)){
+        if (socketData.indexOf("pass check good") != -1){
+          sendSettings();
+        }else if (socketData.indexOf("pass check bad") != -1){
+          
+        }
+      }
+    }
+  }
+  function sendPassCheck(){
+    prev_passjs = document.querySelector('#old_password').value;
+    new_ssidjs = document.querySelector('#new_ssid').value;
+    new_passjs = document.querySelector('#new_password').value;
+    Socket.send("password check(" + prev_passjs + ")");
+    expecting_pf = true;
+  }
+  
+  function sendSettings(){
+    Socket.send("new ssid: " + new_ssidjs + ", new pass: " + new_passjs);
+    expecting_pf = false;
+  }
+
+    </script>
+  </head>
+  <body onload="javascript:init()">
+    <style>body{ background-color: #945454; font-family: Arial, Helvetica, Sans-Serif; Color: #000000; }</style>
+    <a href="/"><button>HOME</button></a>
+    <h1>Administrative Page</h1>
+  <hr>
+  <h3>Change WIFI settings:</h3>
+  <form>
+    <label for="old_password">Previous Password:&ensp;&nbsp;</label>
+    <input type="password" id="old_password" name="old_password"><br/>
+    <sub>(must be entered in order for any changes to be made, even reset)</sub>
+    <br>
+    <br><label for="new_ssid">New WIFI name:&emsp;&emsp;</label>
+    <input type="text" id="new_ssid" name="new_ssid" value="ESP-test"><br/>
+    <sub>(e.g., Johns Xmas Sweater, Liz's Jacket, etc.)</sub>   
+    <br><label for="new_password">New Password:&emsp;&emsp;&ensp;</label>
+    <input type="text" id="new_password" name="new_password"><br/>
+    <sub>(no password for open access to anyone, otherwise must be 8 characters long)</sub>
+    <br><br><button id="send_settings" onclick="sendPassCheck()">Send settings</button>
+  </form>
+    <p>&emsp;</p>
+  <p>Press the reset button to <strong>Reset all</strong> settings to default,<br/>
+  even WIFI name and password. This action cannot be undone.<br/>
+  <br/><br/><button id="reset_settings" onclick=""><strong>Reset all</strong></button></p>
+  
+  </body>
+</html>
