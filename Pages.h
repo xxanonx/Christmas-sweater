@@ -61,33 +61,135 @@ const char page_lighting_manual[] PROGMEM = R"=====(
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>LED Xmas Sweater</title>
     <script>
-      var Socket;
-      function init() {
-        Socket = new WebSocket('ws://' + window.location.hostname + ':81/');
-        Socket.onmessage = function(event){
-          document.getElementById("BuiltInButton").value = event.data;
-          document.getElementById("BuiltInButton").innerHTML=document.getElementById("BuiltInButton").value;
+    var Socket;
+    function init() {
+      Socket = new WebSocket('ws://' + window.location.hostname + ':81/');
+      Socket.onmessage = function(event){
+        console.log("Socket Event!");
+        var message = event.data;
+        var includesOn = (message.indexOf("On") != -1);
+        var includesOff = (message.indexOf("Off") != -1);
+        var newText;
+        if (includesOn){
+          newText = "On";
+        }else if (includesOff){
+          newText = "Off";
+        }
+        
+        if (event.data.indexOf("BI") != -1){
+          document.getElementById("BuiltInButton").innerHTML = newText;
+        }else if (event.data.indexOf("AM") != -1){
+          document.getElementById("AutoButton").innerHTML = newText;
         }
       }
-      function sendBuiltinOn(){
-        var buttonState = document.querySelector('#BuiltInButton').value;
-        var isOn = buttonState.indexOf("on");
-        var isOff = buttonState.indexOf("off");
-    if (isOn != -1){
-      Socket.send("builtin off");
-    }else if ((isOff != -1)){
-      Socket.send("builtin on");
-      
     }
+    function sendBuiltinOn(){
+      console.log("Sending Built-in State!");
+      var buttonState = document.querySelector('#BuiltInButton').innerHTML;
+      var isOn = (buttonState.indexOf("On") != -1);
+      var isOff = (buttonState.indexOf("Off") != -1);
+      if (isOn){
+        document.getElementById("BuiltInButton").innerHTML = "Off";
+        Socket.send("builtin off");
+      }else if (isOff){
+        document.getElementById("BuiltInButton").innerHTML = "On";
+        Socket.send("builtin on");
+        
+      }
     }
-
+    function sendAuto(){
+      console.log("Sending Auto State!");
+      var buttonState = document.querySelector('#AutoButton').innerHTML;
+      var isOn = (buttonState.indexOf("On") != -1);
+      var isOff = (buttonState.indexOf("Off") != -1);
+      if (isOn){
+        document.getElementById("AutoButton").innerHTML = "Off";
+        Socket.send("auto off");
+      }else if (isOff){
+        document.getElementById("AutoButton").innerHTML = "On";
+        Socket.send("auto on");
+      }
+    }
+    function sendManData(){
+      console.log("Sending Manual Data!");
+      if (document.querySelector('#AutoButton').innerHTML == "On"){
+        sendAuto();
+      }
+      var C1 = document.querySelector('#myRangeR').value;
+      var C2 = document.querySelector('#myRangeG').value;
+      var C3 = document.querySelector('#myRangeB').value;
+      Socket.send("Man " + C1 + ":" + C2 + ":" + C3 + ".");
+    }
+    function sendAutoData(){
+      console.log("Sending Auto Data!");
+      if (document.querySelector('#AutoButton').innerHTML == "Off"){
+        sendAuto();
+      }
+      var C1 = document.querySelector('#myRangeStep').value;
+      var C2 = document.querySelector('#myRangeSmooth').value;
+      var C3 = document.querySelector('#myRangeRMax').value;
+      var C4 = document.querySelector('#myRangeGMax').value;
+      var C5 = document.querySelector('#myRangeBMax').value;
+      Socket.send("Auto " + C1 + ":" + C2 + ":" + C3 + ":" + C4 + ":" + C5 +".");
+    }
+    
     </script>
+  <style>
+    .slidecontainer {
+      width: 50%;
+    }
+    .slider {
+      -webkit-appearance: none;
+      width: 50%;
+      height: 20px;
+      background: #d3d3d3;
+      outline: none;
+      opacity: 0.7;
+      -webkit-transition: .5s;
+      transition: opacity .5s;
+    }
+    .slider:hover {
+      opacity: 1;
+    }
+    .slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: #000000;
+      cursor: pointer;
+    }
+    .slider::-moz-range-thumb {
+      width: 20px;
+      height: 20px;
+      border: 0;
+      border-radius: 50%;
+      background: #04AA6D;
+      cursor: pointer;
+    }
+  </style>
   </head>
   <body onload="javascript:init()">
     <style>body{ background-color: #537846; font-family: Arial, Helvetica, Sans-Serif; Color: #000000; }</style>
     <a href="/"><button>HOME</button></a>
     <h1>Manual Lighting Page</h1>
-    <p>Built-in LED&emsp;<button id="BuiltInButton" onclick="sendBuiltinOn()" value="On"></button></p>
+    <div>Built-in LED&emsp;<button id="BuiltInButton" onclick="sendBuiltinOn()">Off</button>
+  <br>Automatic&emsp;&emsp;<button id="AutoButton" onclick="sendAuto()">On</button>
+  <br>Manual brightness:
+  <br><input oninput="sendManData()" style="background: #AE452E" type="range" min="0" max="255" value="127" class="slider" id="myRangeR">
+  <br><input oninput="sendManData()" style="background: #23551D" type="range" min="0" max="255" value="127" class="slider" id="myRangeG">
+  <br><input oninput="sendManData()" style="background: #272D72" type="range" min="0" max="255" value="127" class="slider" id="myRangeB">
+  <br><br><br>
+  <div>Step Time&emsp;<input oninput="sendAutoData()" style="background: #f5f5f5" type="number" min="2000" max="10000" value="2000" step="10" id="myRangeStep">&emsp;&emsp;
+  Smooth Time&emsp;<input oninput="sendAutoData()" style="background: ##f5f5f5" type="number" min="5" max="100" value="35" id="myRangeSmooth">
+  </div>
+  <br>Maximum Automatic Brightness:
+  <br><input oninput="sendAutoData()" style="background: #AE452E" type="range" min="0" max="255" value="255" class="slider" id="myRangeRMax">
+  <br><input oninput="sendAutoData()" style="background: #23551D" type="range" min="0" max="255" value="255" class="slider" id="myRangeGMax">
+  <br><input oninput="sendAutoData()" style="background: #272D72" type="range" min="0" max="255" value="255" class="slider" id="myRangeBMax">
+
+  </div>
   </body>
 </html>
 )=====";
@@ -164,49 +266,148 @@ const char page_admin[] PROGMEM = R"=====(
 
 void show_page_home(){
   server.send(200, "text/html", page_home);
+  man_open = false;
 }
 
 void show_page_lighting(){
   server.send(200, "text/html", page_lighting);
+  man_open = false;
 }
 
 void show_page_lighting_manual(){
   server.send(200, "text/html", page_lighting_manual);
+  man_open = true;
 }
 
 void show_page_admin(){
-  server.send(200, "text/html", page_lighting_manual);
+  server.send(200, "text/html", page_admin);
+  man_open = false;
 }
 
 void show_page_404(){
   server.send(200, "text/html", page_404);
+  man_open = false;
 }
 
-
 void webSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t leng){
+  bool includesOn;
+  bool includesOff;
   char p[leng];
   for(int i = 0; i < leng; i++){
-    Serial.print((char) payload[i]);
+    //Serial.print((char) payload[i]);
     p[i] = ((char) payload[i]);
   }
   Serial.println(p);
   String load = String(p);
-  if (load.substring(0,10) == "builtin on") builtin = true;
-  else if (load.substring(0,11) == "builtin off") builtin = false;
-  else if (load.substring(0,15) == "password check("){
-    load.remove(0,15);
-    int load_len = load.length();
-    load.remove(load_len,1);
-    Serial.println(load);
-    if (load == password){
-      Serial.println("pass excepted");
-      char c[] = "pass check good";
-      webSocket.broadcastTXT(c, sizeof(c));
+  includesOn = (load.indexOf("on") != -1);
+  includesOff = (load.indexOf("off") != -1);
+  Serial.print("includesOn: ");
+  Serial.println(includesOn);
+  Serial.print("includesOff: ");
+  Serial.println(includesOff);
+
+  Serial.print("man_open: ");
+  Serial.println(man_open);
+  if ((includesOn or includesOff)){
+    if (load.indexOf("builtin") != -1) builtin = (includesOn and not includesOff);
+    else if (load.indexOf("auto") != -1){
+      automatic_mode = (includesOn and not includesOff);
+      if (automatic_mode) auto_max_change = true;
     }
-    else {
-      Serial.println("pass failed");
-      char c[] = "pass check bad";
-      webSocket.broadcastTXT(c, sizeof(c));
+  }
+  else if ((load.indexOf("Man") != -1)){
+    if (automatic_mode) automatic_mode = false;
+    man_led_change = false;
+    int start_value = (load.indexOf("Man ") + 4);
+    int end_value = load.indexOf(":");
+    int value_ = int(load.substring(start_value, end_value).toInt());
+    //Serial.println(load.substring(start_value, end_value));
+    //Serial.println(value);
+    if (LED_value_1.LED_value != value_){
+      man_led_change = true;
+      LED_value_1.LED_value = value_;
+    }
+    start_value = (end_value + 1);
+    end_value = load.indexOf(":", start_value);
+    value_ = int(load.substring(start_value, end_value).toInt());
+    //Serial.println(load.substring(start_value, end_value));
+    //Serial.println(value);
+    if (LED_value_2.LED_value != value_){
+      man_led_change = true;
+      LED_value_2.LED_value = value_;
+    }
+    start_value = (end_value + 1);
+    end_value = load.indexOf(".", start_value);
+    value_ = int(load.substring(start_value, end_value).toInt());
+    //Serial.println(load.substring(start_value, end_value));
+    //Serial.println(value);
+    if (LED_value_3.LED_value != value_){
+      man_led_change = true;
+      LED_value_3.LED_value = value_;
+    }
+  }
+  else if ((load.indexOf("Auto") != -1)){
+    if (not automatic_mode) automatic_mode = true;
+    int start_value = (load.indexOf("Auto ") + 5);
+    int end_value = load.indexOf(":");
+    int value_ = int(load.substring(start_value, end_value).toInt());
+    //Serial.println(load.substring(start_value, end_value));
+    //Serial.println(value);
+    if (automatic_timer.time != value_){
+      automatic_timer.time = value_;
+    }
+    start_value = (end_value + 1);
+    end_value = load.indexOf(":", start_value);
+    value_ = int(load.substring(start_value, end_value).toInt());
+    //Serial.println(load.substring(start_value, end_value));
+    //Serial.println(value);
+    if (smooth_interval.time != value_){
+      smooth_interval.time = value_;
+    }
+    start_value = (end_value + 1);
+    end_value = load.indexOf(":", start_value);
+    value_ = int(load.substring(start_value, end_value).toInt());
+    //Serial.println(load.substring(start_value, end_value));
+    //Serial.println(value);
+    if (LED_value_1.Max != value_){
+      auto_max_change = true;
+      LED_value_1.Max = value_;
+    }
+    start_value = (end_value + 1);
+    end_value = load.indexOf(":", start_value);
+    value_ = int(load.substring(start_value, end_value).toInt());
+    //Serial.println(load.substring(start_value, end_value));
+    //Serial.println(value);
+    if (LED_value_2.Max != value_){
+      auto_max_change = true;
+      LED_value_2.Max = value_;
+    }
+    start_value = (end_value + 1);
+    end_value = load.indexOf(".", start_value);
+    value_ = int(load.substring(start_value, end_value).toInt());
+    //Serial.println(load.substring(start_value, end_value));
+    //Serial.println(value);
+    if (LED_value_3.Max != value_){
+      auto_max_change = true;
+      LED_value_3.Max = value_;
+    }
+  }
+  else{
+    if (load.indexOf("password check(") != -1){
+      load.remove(0,15);
+      int load_len = load.length();
+      load.remove(load_len,1);
+      Serial.println(load);
+      if (load == password){
+        Serial.println("pass excepted");
+        char c[] = "pass check good";
+        webSocket.broadcastTXT(c, sizeof(c));
+      }
+      else {
+        Serial.println("pass failed");
+        char c[] = "pass check bad";
+        webSocket.broadcastTXT(c, sizeof(c));
+      }
     }
   }
   pulse = true;
