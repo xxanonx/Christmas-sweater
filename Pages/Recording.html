@@ -1,0 +1,87 @@
+<html>
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>LED Xmas Sweater</title>
+    <script>
+		var Socket;
+		function init() {
+			Socket = new WebSocket('ws://' + window.location.hostname + ':81/');
+			Socket.onmessage = function(event){
+				
+			}
+		}
+		
+		function sendAuto(){
+			console.log("Sending Auto State!");
+			var buttonState = document.querySelector('#AutoButton').innerHTML;
+			var isOn = (buttonState.indexOf("On") != -1);
+			var isOff = (buttonState.indexOf("Off") != -1);
+			if (isOn){
+				document.getElementById("AutoButton").innerHTML = "Off";
+				Socket.send("auto off");
+			}else if (isOff){
+				document.getElementById("AutoButton").innerHTML = "On";
+				Socket.send("auto on");
+			}
+		}
+		function sendManData(){
+			console.log("Sending Manual Data!");
+			if (document.querySelector('#AutoButton').innerHTML == "On"){
+				sendAuto();
+			}
+			var C1 = document.querySelector('#myRangeR').value;
+			var C2 = document.querySelector('#myRangeG').value;
+			var C3 = document.querySelector('#myRangeB').value;
+			Socket.send("Man " + C1 + ":" + C2 + ":" + C3 + ".");
+		}
+				
+    </script>
+	<style>
+		.slidecontainer {
+		  width: 50%;
+		}
+		.slider {
+		  -webkit-appearance: none;
+		  width: 50%;
+		  height: 20px;
+		  background: #d3d3d3;
+		  outline: none;
+		  opacity: 0.7;
+		  -webkit-transition: .5s;
+		  transition: opacity .5s;
+		}
+		.slider:hover {
+		  opacity: 1;
+		}
+		.slider::-webkit-slider-thumb {
+		  -webkit-appearance: none;
+		  appearance: none;
+		  width: 20px;
+		  height: 20px;
+		  border-radius: 50%;
+		  background: #000000;
+		  cursor: pointer;
+		}
+		.slider::-moz-range-thumb {
+		  width: 20px;
+		  height: 20px;
+		  border: 0;
+		  border-radius: 50%;
+		  background: #04AA6D;
+		  cursor: pointer;
+		}
+	</style>
+	</head>
+  <body onload="javascript:init()">
+    <style>body{ background-color: #537846; font-family: Arial, Helvetica, Sans-Serif; Color: #000000; }</style>
+    <a href="/"><button>HOME</button></a>
+    <h1>Recording Lighting Page</h1>
+	<br><br>
+	<br>Manual brightness:
+	<br><input oninput="sendManData()" style="background: #AE452E" type="range" min="0" max="255" value="127" class="slider" id="myRangeR">&emsp;<button id="RecordR" onclick="StartRecord()">Record</button>
+	<br><input oninput="sendManData()" style="background: #23551D" type="range" min="0" max="255" value="127" class="slider" id="myRangeG">&emsp;<button id="RecordG" onclick="StartRecord()">Record</button>
+	<br><input oninput="sendManData()" style="background: #272D72" type="range" min="0" max="255" value="127" class="slider" id="myRangeB">&emsp;<button id="RecordB" onclick="StartRecord()">Record</button>
+	<br><input oninput="sendManData()" style="background: #ffffff" type="range" min="0" max="255" value="127" class="slider" id="myRangeW">&emsp;<button id="RecordW" onclick="StartRecord()">Record</button>
+
+  </body>
+</html>
