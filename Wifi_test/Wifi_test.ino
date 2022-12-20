@@ -31,17 +31,22 @@ SpecialBool smooth_trigger;
 
 bool man_led_change = true;
 bool auto_max_change;
+bool auto_min_change;
 struct value{
   byte LED_value = 127;
   byte LED_add = 1;
   byte Max = 255;
+  byte Min = 0;
 };
 value LED_value_1;
 value LED_value_2;
 value LED_value_3;
+value LED_value_4;
 const int LED_pin_1 = 5;
-const int LED_pin_2 = 4;
-const int LED_pin_3 = 0;
+const int LED_pin_2 = 0;
+const int LED_pin_3 = 14;
+const int LED_pin_4 = 13;
+value *AofLEds[] = {&LED_value_1, &LED_value_2, &LED_value_3, &LED_value_4};
 
 #include "Pages.h"
 
@@ -53,6 +58,7 @@ void setup() {
   pinMode(LED_pin_1, OUTPUT);
   pinMode(LED_pin_2, OUTPUT);
   pinMode(LED_pin_3, OUTPUT);
+  pinMode(LED_pin_4, OUTPUT);
   
   Serial.begin(115200);
   LittleFS.begin();
@@ -127,17 +133,23 @@ void loop(){
     analogWrite(LED_pin_1, LED_value_1.LED_value);
     analogWrite(LED_pin_2, LED_value_2.LED_value);
     analogWrite(LED_pin_3, LED_value_3.LED_value);
-    Serial.println(LED_value_1.LED_value);
-    Serial.println(LED_value_2.LED_value);
-    Serial.println(LED_value_3.LED_value);
+    analogWrite(LED_pin_4, LED_value_4.LED_value);
+    Serial.print(LED_value_1.LED_value);
+    Serial.print(",");
+    Serial.print(LED_value_2.LED_value);
+    Serial.print(",");
+    Serial.print(LED_value_3.LED_value);
+    Serial.print(",");
+    Serial.println(LED_value_4.LED_value);
     man_led_change = false;
   }
   //Write auto mode
   else if (automatic_mode){
-    if (auto_trigger.actual() and not auto_trigger.special.f){
+    if ((auto_trigger.actual() and not auto_trigger.special.f) or auto_trigger.special.g){
       //Serial.println("step change");
       automatic_step_no++;
       auto_trigger.special.f = 1;
+      auto_trigger.special.g = 0;
       if (automatic_step_no >= 4) {
         automatic_step_no = 0;
       }
@@ -150,8 +162,25 @@ void loop(){
         LED_value_1 = check_if_above_max(LED_pin_1, LED_value_1);
         LED_value_2 = check_if_above_max(LED_pin_2, LED_value_2);
         LED_value_3 = check_if_above_max(LED_pin_3, LED_value_3);
-        if((LED_value_1.LED_value <= LED_value_1.Max) and (LED_value_2.LED_value <= LED_value_2.Max) and (LED_value_3.LED_value <= LED_value_3.Max)){
+        LED_value_4 = check_if_above_max(LED_pin_4, LED_value_4);
+        if((LED_value_1.LED_value <= LED_value_1.Max) and 
+          (LED_value_2.LED_value <= LED_value_2.Max) and 
+          (LED_value_3.LED_value <= LED_value_3.Max) and
+          (LED_value_4.LED_value <= LED_value_4.Max)){
           auto_max_change = false;
+        }
+      }
+      if(auto_min_change){
+        Serial.println("minimum change");
+        LED_value_1 = check_if_below_min(LED_pin_1, LED_value_1);
+        LED_value_2 = check_if_below_min(LED_pin_2, LED_value_2);
+        LED_value_3 = check_if_below_min(LED_pin_3, LED_value_3);
+        LED_value_4 = check_if_below_min(LED_pin_4, LED_value_4);
+        if((LED_value_1.LED_value >= LED_value_1.Min) and 
+          (LED_value_2.LED_value >= LED_value_2.Min) and 
+          (LED_value_3.LED_value >= LED_value_3.Min) and
+          (LED_value_4.LED_value >= LED_value_4.Min)){
+          auto_min_change = false;
         }
       }
       switch (automatic_step_no){
@@ -165,6 +194,7 @@ void loop(){
           LED_value_3 = smooth_dat_boi(LED_pin_3, LED_value_3);
         break;
         case 3:
+          LED_value_4 = smooth_dat_boi(LED_pin_4, LED_value_4);
           /*LED_value_1 = smooth_dat_boi(LED_pin_1, LED_value_1);
           LED_value_2 = smooth_dat_boi(LED_pin_2, LED_value_2);
           LED_value_3 = smooth_dat_boi(LED_pin_3, LED_value_3);
@@ -179,18 +209,24 @@ void loop(){
       Serial.print(",");
       Serial.print(LED_value_2.LED_value);
       Serial.print(",");
-      Serial.println(LED_value_3.LED_value);
+      Serial.print(LED_value_3.LED_value);
+      Serial.print(",");
+      Serial.println(LED_value_4.LED_value);
       
     }
   }
 }
 
 value smooth_dat_boi(int pin, value LED_values){
-  if((LED_values.LED_value >= LED_values.Max) or (LED_values.LED_value <= 0)){
+  if((LED_values.LED_value >= LED_values.Max) or (LED_values.LED_value <= LED_values.Min)){
     LED_values.LED_add *= -1;
     LED_values.LED_value += LED_values.LED_add;
   }
   LED_values.LED_value += LED_values.LED_add;
+  if (LED_values.Max == LED_values.Min){
+    LED_values.LED_value = LED_values.Min;
+    auto_trigger.special.g = 1;
+  }
   analogWrite(pin, LED_values.LED_value);
   return LED_values;
 }
@@ -198,6 +234,14 @@ value check_if_above_max(int pin, value LED_values){
   if(LED_values.LED_value > LED_values.Max){
     LED_values.LED_add = 1;
     LED_values.LED_value -= 5;
+    analogWrite(pin, LED_values.LED_value);
+  }
+  return LED_values;
+}
+value check_if_below_min(int pin, value LED_values){
+  if(LED_values.LED_value < LED_values.Min){
+    LED_values.LED_add = -1;
+    LED_values.LED_value += 5;
     analogWrite(pin, LED_values.LED_value);
   }
   return LED_values;
