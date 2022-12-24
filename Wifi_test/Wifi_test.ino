@@ -43,7 +43,7 @@ value LED_value_2;
 value LED_value_3;
 value LED_value_4;
 const int LED_pin_1 = 5;
-const int LED_pin_2 = 0;
+const int LED_pin_2 = 4;
 const int LED_pin_3 = 14;
 const int LED_pin_4 = 13;
 value *AofLEds[] = {&LED_value_1, &LED_value_2, &LED_value_3, &LED_value_4};
